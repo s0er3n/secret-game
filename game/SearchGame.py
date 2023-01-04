@@ -3,15 +3,19 @@ import logging
 from collections import defaultdict
 from threading import Thread
 from time import sleep
+import uuid
+import json
 
 from game.Article import Article
 from game.ConnectionManager import manager
 from game.Game import Game
 from game.GameState import State
 from game.Player import Player, PlayerCopy
-from game.PlayerData import PlayerData, PlayerRights, PlayerState
+from game.PlayerData import PlayerData, PlayerRights, PlayerState, Node
 from game.Query import Query
 from game.Response import Error, LobbyUpdate, Response
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 class SearchGame(Game):
@@ -74,6 +78,7 @@ class SearchGame(Game):
                 rights=PlayerRights.normal,
             )
 
+        logging.info(f"joining player: {player}")
         return self._make_lobby_update_response()
 
     def leave(self, player: Player) -> Response:
@@ -135,17 +140,20 @@ class SearchGame(Game):
             update_response = self._make_lobby_update_response()
             await manager.send_response(update_response)
 
-        thread = Thread(target=asyncio.run, args=(update_state(round=self.round),))
+        thread = Thread(target=asyncio.run, args=(
+            update_state(round=self.round),))
         thread.start()
 
     def set_role(self, host: Player, player_id: str, role: str):
-        player = next(player for player in self.players if player.id == player_id)
+        player = next(
+            player for player in self.players if player.id == player_id)
 
         role = PlayerState(role)
         if not self._check_host(host):
             return
         if not State.idle:
-            logging.warning("someone tried to change the role while ingame/gameover")
+            logging.warning(
+                "someone tried to change the role while ingame/gameover")
             return
 
         if not (role == PlayerState.hunting or role == PlayerState.watching):
@@ -173,11 +181,14 @@ class SearchGame(Game):
             Query.execute(move=self.start_article.url_name, recipient=player)
 
     def _make_lobby_update_response(self) -> LobbyUpdate:
+        logging.info(
+            f"id: {self.id}, state: {self.state}, time: {self.play_time}, players: {self.players}")
         return LobbyUpdate(
             articles_to_find=list(
                 article.pretty_name for article in self.articles_to_find
             ),
-            articles_found=list(article.pretty_name for article in self.found_articles),
+            articles_found=list(
+                article.pretty_name for article in self.found_articles),
             start_article=self.start_article.pretty_name,
             id=self.id,
             state=self.state.value,
@@ -187,9 +198,9 @@ class SearchGame(Game):
                     PlayerCopy(
                         id=player.id, name=player.name, points=self.points[player]
                     ),
-                    data,
+                    playerData,
                 )
-                for player, data in self.players.items()
+                for player, playerData in self.players.items()
             ],
             _recipients=list(self.players.keys()),
         )
@@ -197,7 +208,13 @@ class SearchGame(Game):
     def set_article(self, player: Player, article: str, better_name, start=False):
 
         if start:
-            self.start_article = Article(url_name=article, pretty_name=better_name)
+            self.start_article = Article(
+                url_name=article, pretty_name=better_name)
+            self.players[player].nodes.append(Node(
+                id=str(uuid.uuid4()),
+                parent="",
+                article=self.start_article
+            ))
         else:
             self.articles_to_find.add(
                 Article(url_name=article, pretty_name=better_name)
@@ -226,9 +243,6 @@ class SearchGame(Game):
         #         _recipients=[player],
         #     )
 
-        # no need to query the name bc its done by the rust api now
-        # pretty_name = Query.execute(move=url_name, recipient=player)
-
         if not self._is_move_allowed(url_name=url_name, player=player):
             logging.warning("cheate detected")
             return Error(
@@ -243,6 +257,17 @@ class SearchGame(Game):
         self._add_points_current_move(article, player)
 
         self.players[player].moves.append(article)
+
+        parent_node = self.players[player].nodes[-1]
+
+        self.players[player].nodes.append(Node(
+            id=str(uuid.uuid4()),
+            article=article,
+            parent=parent_node.id,
+            children=list[Node],
+        ))
+        parent_node.children.append(self.players[player].nodes[-1].id)
+
         if self._check_if_player_found_all(player):
             self.state = State.over
 
@@ -250,7 +275,6 @@ class SearchGame(Game):
 
     def _is_move_allowed(self, url_name: str, player: Player):
         current_location = self.players[player].moves[-1].url_name
-        # links is a list of pretty names and the key of queries is the url name
         # WARNING pretty confusing WARNING
         return url_name in Query.queries[current_location]["links"]
 
@@ -259,7 +283,8 @@ class SearchGame(Game):
             logging.info("move not in articles to find")
             return
         if target in self.players[player].moves:
-            logging.info("article already found by player not counting it again")
+            logging.info(
+                "article already found by player not counting it again")
             return
 
         if target in self.found_articles:
