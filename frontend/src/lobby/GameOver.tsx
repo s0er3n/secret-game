@@ -10,7 +10,7 @@ type Props = {
   local: any;
 };
 
-const PlayerList: Component<Props> = (props) => {
+const GameOver: Component<Props> = (props) => {
   if (!props.players) return <></>;
   return (
     <div>
