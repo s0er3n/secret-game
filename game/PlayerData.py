@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 from enum import Enum
 import uuid
@@ -18,20 +20,29 @@ class PlayerState(str, Enum):
 
 @dataclasses.dataclass
 class Node:
-    id: str
     article: Article
-    parent: str
-    children: list[str] = dataclasses.field(default_factory=list)
+    parent: Node | None
+    children: list[Node] = dataclasses.field(default_factory=list)
+
+    def add_child(self, article: Article) -> Node:
+        new_node = Node(
+            article=article, parent=self
+        )
+        self.children.append(new_node)
+        return new_node
 
 
 @dataclasses.dataclass
 class PlayerData:
     rights: PlayerRights
-
     state: PlayerState = PlayerState.watching
-
     moves: list[Article] = dataclasses.field(default_factory=list)
-
-    node_position: str = ""
-
+    node_position: Node | None = None
     nodes: list[Node] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class PlayerDataNoNode:
+    rights: PlayerRights
+    state: PlayerState = PlayerState.watching
+    moves: list[Article] = dataclasses.field(default_factory=list)

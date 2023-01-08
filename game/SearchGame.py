@@ -3,15 +3,13 @@ import logging
 from collections import defaultdict
 from threading import Thread
 from time import sleep
-import uuid
-import json
 
 from game.Article import Article
 from game.ConnectionManager import manager
 from game.Game import Game
 from game.GameState import State
 from game.Player import Player, PlayerCopy
-from game.PlayerData import PlayerData, PlayerRights, PlayerState, Node
+from game.PlayerData import PlayerData, PlayerDataNoNode, PlayerRights, PlayerState, Node
 from game.Query import Query
 from game.Response import Error, LobbyUpdate, Response
 
@@ -182,7 +180,8 @@ class SearchGame(Game):
 
     def _make_lobby_update_response(self) -> LobbyUpdate:
         logging.info(
-            f"id: {self.id}, state: {self.state}, time: {self.play_time}, players: {self.players}")
+            f"id: {self.id}, state: {self.state}, time: {self.play_time}")
+        logging.info(f"players: {self.players}")
         return LobbyUpdate(
             articles_to_find=list(
                 article.pretty_name for article in self.articles_to_find
@@ -198,7 +197,10 @@ class SearchGame(Game):
                     PlayerCopy(
                         id=player.id, name=player.name, points=self.points[player]
                     ),
-                    playerData,
+                    PlayerDataNoNode(
+                        rights=playerData.rights, state=playerData.state,
+                        moves=playerData.moves,
+                    ),
                 )
                 for player, playerData in self.players.items()
             ],
@@ -211,10 +213,11 @@ class SearchGame(Game):
             self.start_article = Article(
                 url_name=article, pretty_name=better_name)
             self.players[player].nodes.append(Node(
-                id=str(uuid.uuid4()),
-                parent="",
+                parent=None,
+                children=list(),
                 article=self.start_article
             ))
+            self.players[player].node_position = self.players[player].node_position[-1]
         else:
             self.articles_to_find.add(
                 Article(url_name=article, pretty_name=better_name)
@@ -233,16 +236,6 @@ class SearchGame(Game):
                 _recipients=[player],
             )
 
-        # if (
-        #     self.players[player].state == PlayerState.watching
-        #     or self.players[player].state == PlayerState.finnished
-        # ):
-        #     logging.warning("Watching People cannot not move")
-        #     return Error(
-        #         e="Watching People cannot not move",
-        #         _recipients=[player],
-        #     )
-
         if not self._is_move_allowed(url_name=url_name, player=player):
             logging.warning("cheate detected")
             return Error(
@@ -258,19 +251,34 @@ class SearchGame(Game):
 
         self.players[player].moves.append(article)
 
-        parent_node = self.players[player].nodes[-1]
+        if self.players[player].node_position is None:
+            logging.error("no node position")
+            return Error(_recipients=[player], e="wtf")
+
+        current_node = self.players[player].node_position
+
+        child_node = current_node.add_child(article)
 
         self.players[player].nodes.append(Node(
-            id=str(uuid.uuid4()),
             article=article,
-            parent=parent_node.id,
-            children=list[Node],
+            parent=current_node,
+            children=[],
         ))
-        parent_node.children.append(self.players[player].nodes[-1].id)
+        current_node.children.append(self.players[player].nodes[-1])
+
+        self.players[player].node_position = self.players[player].nodes[-1]
 
         if self._check_if_player_found_all(player):
             self.state = State.over
 
+        return self._make_lobby_update_response()
+
+    def page_back(self, player: Player):
+        if self.node_position is None:
+            return
+        self.node_position = self.node_position.parent
+        Query.execute(move=self.node_position.article.pretty_name,
+                      recipient=player)
         return self._make_lobby_update_response()
 
     def _is_move_allowed(self, url_name: str, player: Player):

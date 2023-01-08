@@ -1,5 +1,6 @@
 import { Accessor, Component, Show, For } from "solid-js";
 import PlayerList from "./PlayerList";
+import BackButton from "./BackButton";
 
 const Header: Component<{
   id: string | null;
@@ -19,6 +20,9 @@ const Header: Component<{
         <div class="flex-1">
           <a class="btn btn-ghost normal-case text-xl">Better WikiGame</a>
         </div>
+        <Show when={props.lobby()?.state === "ingame"}>
+          <BackButton />
+        </Show>
         <Show when={props.lobby()}>
           <div class="flex-none space-x-2 ">
             <input

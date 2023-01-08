@@ -6,7 +6,7 @@ type Props = {
   players: any[];
 };
 
-const PlayerList: Component<Props> = (props) => {
+const GameOver: Component<Props> = (props) => {
   return (
     <div class="flex justify-center">
       <div>
@@ -43,4 +43,4 @@ const PlayerList: Component<Props> = (props) => {
   );
 };
 
-export default PlayerList;
+export default GameOver;
