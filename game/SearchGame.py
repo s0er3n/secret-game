@@ -217,7 +217,7 @@ class SearchGame(Game):
                 children=list(),
                 article=self.start_article
             ))
-            self.players[player].node_position = self.players[player].node_position[-1]
+            self.players[player].node_position = self.players[player].nodes[-1]
         else:
             self.articles_to_find.add(
                 Article(url_name=article, pretty_name=better_name)
@@ -257,16 +257,9 @@ class SearchGame(Game):
 
         current_node = self.players[player].node_position
 
-        child_node = current_node.add_child(article)
+        new_node = current_node.add_child(article)
 
-        self.players[player].nodes.append(Node(
-            article=article,
-            parent=current_node,
-            children=[],
-        ))
-        current_node.children.append(self.players[player].nodes[-1])
-
-        self.players[player].node_position = self.players[player].nodes[-1]
+        self.players[player].node_position = new_node
 
         if self._check_if_player_found_all(player):
             self.state = State.over
@@ -274,10 +267,10 @@ class SearchGame(Game):
         return self._make_lobby_update_response()
 
     def page_back(self, player: Player):
-        if self.node_position is None:
+        if self.players[player].node_position is None:
             return
-        self.node_position = self.node_position.parent
-        Query.execute(move=self.node_position.article.pretty_name,
+        self.players[player].node_position = self.players[player].node_position.parent
+        Query.execute(move=self.players[player].node_position.article.pretty_name,
                       recipient=player)
         return self._make_lobby_update_response()
 
