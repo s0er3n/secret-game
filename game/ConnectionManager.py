@@ -1,14 +1,14 @@
 import logging
 from dataclasses import asdict
 
-from fastapi import FastAPI, WebSocket
+from fastapi import WebSocket
 
 from game.Player import Player
-from game.Response import Error, Response
+from game.Response import Response
 
 
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.active_connections: dict[Player, WebSocket] = {}
         self.players: dict[str, Player] = {}
 
@@ -22,10 +22,10 @@ class ConnectionManager:
         self.active_connections[player] = websocket
         return player
 
-    def disconnect(self, player: Player):
+    def disconnect(self, player: Player) -> None:
         del self.active_connections[player]
 
-    async def send_response(self, message: Response | None):
+    async def send_response(self, message: Response | None) -> None:
         if not message:
             logging.warning("no response")
             return

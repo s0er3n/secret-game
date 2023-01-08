@@ -6,24 +6,20 @@ const SetArticleHeadline: Component<{ lobby: any }> = (props) => {
   return (
     <div class="flex justify-center font-bold">
       <Show
-        when={
-          props.lobby().start_article
-        }
-        fallback={
-          <div>
-            Search for a page to start:
-          </div>
-        }
+        when={props.lobby().start_article}
+        fallback={<p>Search for a page to start:</p>}
       >
-        <div >
-          Search for a page or pages to find:
-        </div>
+        <p>Search for a page or pages to find:</p>
       </Show>
     </div>
-  )
-}
+  );
+};
 
-const SetupGame: Component<{ id: any; lobby: any; search: Accessor<Array<Array<string>> | undefined>; }> = (props) => {
+const SetupGame: Component<{
+  id: any;
+  lobby: any;
+  search: Accessor<Array<Array<string>> | undefined>;
+}> = (props) => {
   return (
     <>
       <SetArticleHeadline lobby={props.lobby} />
@@ -48,7 +44,7 @@ const SetupGame: Component<{ id: any; lobby: any; search: Accessor<Array<Array<s
         </div>
       </Show>
     </>
-  )
+  );
 };
 
 export default SetupGame;

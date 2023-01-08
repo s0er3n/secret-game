@@ -22,7 +22,7 @@ class LobbyServer:
 
         return self.join_lobby(lobby=lobby, player=player)
 
-    def delete_lobby(self):
+    def delete_lobby(self) -> None:
         raise Exception(NotImplemented)
 
     def join_lobby(
@@ -55,7 +55,7 @@ class LobbyServer:
             return lobby.game.join(player)
         return None
 
-    def leave_lobby(self, player: Player):
+    def leave_lobby(self, player: Player) -> None:
         lobby = self.players_lobbies.get(player)
         if lobby and player not in lobby.players:
             logging.warning("player not in lobby doing nothing")

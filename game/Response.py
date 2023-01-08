@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Iterable
 
 from game.Player import Player, PlayerCopy
 from game.PlayerData import PlayerData
+from game.QueryResult import QueryResult
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -23,6 +23,7 @@ class Error(Response):
 @dataclasses.dataclass(kw_only=True)
 class LobbyUpdate(Response):
     method: str = "LobbyUpdate"
+    end_time: int
     state: str
     id: str
     players: list[tuple[PlayerCopy, PlayerData]]
@@ -34,5 +35,5 @@ class LobbyUpdate(Response):
 
 @dataclasses.dataclass(kw_only=True)
 class Wiki(Response):
-    data: Any
+    data: QueryResult
     method: str = "Wiki"

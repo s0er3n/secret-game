@@ -1,20 +1,18 @@
 import asyncio
 import logging
 from threading import Thread
-from typing import Any
-import pytest
-import json
+from typing import Iterator
 
 import requests
 from bs4 import BeautifulSoup
 
-from game.Article import Article
-from game.ConnectionManager import manager
 from game.Player import Player
-from game.Response import Response, Wiki
+from game.Response import Wiki
+from game.QueryResult import QueryResult
+from game.ConnectionManager import manager
 
 
-def _select_and_reduce_links(all_links):
+def _select_and_reduce_links(all_links) -> Iterator[str]:
     for link in all_links:
         if link["href"].startswith("/wiki/") and not link["href"].startswith("/wiki/Help") and not link["href"].startswith("/wiki/File"):
             yield link["href"][6::]
@@ -24,10 +22,10 @@ class Query:
     # i will query one by one for MVP
     # next_query: dict[str, list[Player]] = defaultdict(list)
 
-    queries: dict[str, Any] = dict()
+    queries: dict[str, QueryResult] = dict()
 
     @classmethod
-    def _query_and_add_to_queries(cls, move: str):
+    def _query_and_add_to_queries(cls, move: str) -> None:
         logging.warning(f"add move to query {move}")
         resp_text = requests.get(
             f"https://en.wikipedia.org/wiki/{move}"
@@ -35,7 +33,10 @@ class Query:
 
         soup = BeautifulSoup(resp_text, "html.parser")
 
-        title = soup.find("h1").text
+        if not (h1 := soup.find("h1")):
+            logging.warning("no h1")
+            return None
+        title = h1.text
 
         article = soup.find("div", {"id": "mw-content-text"})
 
@@ -53,7 +54,7 @@ class Query:
                              "url_ending": move}
 
     @classmethod
-    def execute(cls, move: str, recipient: Player):
+    def execute(cls, move: str, recipient: Player) -> str | None:
         if not cls.queries.get(move):
             logging.warning(f"before try move {move}")
             try:
@@ -62,22 +63,25 @@ class Query:
                 logging.error("could not query wikipedia")
                 return
 
+        if not (query_result := cls.queries.get(move)):
+            logging.warning("no query result")
+            return None
         thread = Thread(
             target=asyncio.run,
             args=(
                 manager.send_response(
                     Wiki(
-                        data=cls.queries.get(move),
+                        data=query_result,
                         _recipients=[recipient],
                     )
                 ),
             ),
         )
         thread.start()
+        return query_result["title"]
 
-        return cls.queries.get(move)["title"]
 
-
-def test_query():
+def test_query() -> None:
     target = "berlin"
-    assert Query._query_and_add_to_queries(target)
+    Query._query_and_add_to_queries(target)
+    assert Query.queries.get(target) is not None

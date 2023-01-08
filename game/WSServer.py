@@ -5,7 +5,7 @@ import logging
 
 from game.ConnectionManager import manager
 from game.LobbyServer import LobbyServer
-from game.Response import Error, Response
+from game.Response import Error
 from game.SearchGame import Player, SearchGame
 from game.SearchQuery import SearchQuery
 
@@ -16,7 +16,7 @@ lobbyServer = LobbyServer()
 
 
 @app.get("/")
-def index():
+def index() -> str:
     return "hallo"
 
 
@@ -36,10 +36,11 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                     "args": args,
                 }:
                     if method.startswith("_"):
-                        raise Exception("not allowed")
-
+                        await manager.send_response(Error(e="not allowed", _recipients=[player]))
+                        continue
+                    target: SearchQuery | SearchGame | LobbyServer | Player | None = None
                     if data.get("type") == "player":
-                        target: SearchQuery | SearchGame | LobbyServer | Player = player
+                        target = player
                     elif data.get("type") == "game":
                         lobby = lobbyServer.players_lobbies.get(player)
                         if lobby and (game := lobby.game):
@@ -48,7 +49,10 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         target = SearchQuery()
                     else:
                         target = lobbyServer
-                    await manager.send_response(getattr(target, method)(player, **args))
+                    try:
+                        await manager.send_response(getattr(target, method)(player, **args))
+                    except Exception as e:
+                        await manager.send_response(Error(e=str(e), _recipients=[player]))
 
                 case _:
                     await manager.send_response(

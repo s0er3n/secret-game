@@ -1,6 +1,4 @@
 import dataclasses
-import uuid
-from dataclasses import field
 
 user_names = {}
 

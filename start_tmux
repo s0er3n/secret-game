@@ -1,0 +1,12 @@
+#!/bin/sh
+tmux new-session -d -s "secret-game"
+tmux send-keys "source venv/bin/activate.fish" Enter
+tmux send-keys nvim Enter
+tmux new-window 
+tmux send-keys "source venv/bin/activate.fish" Enter
+tmux send-keys "uvicorn game.WSServer:app --reload" Enter
+tmux new-window 
+tmux send-keys "cd frontend" Enter
+tmux send-keys "npm run dev" Enter
+tmux attach -t secret-game
+

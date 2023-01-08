@@ -5,7 +5,7 @@ import requests
 
 from game.ConnectionManager import manager
 from game.Player import Player
-from game.Response import Response, Wiki
+from game.Response import Wiki
 
 # from collections import defaultdict
 
@@ -20,6 +20,7 @@ class SearchQuery:
 
         thread = Thread(
             target=asyncio.run,
-            args=(manager.send_response(Wiki(data=data, _recipients=[player])),),
+            args=(manager.send_response(
+                Wiki(data=data, _recipients=[player])),),
         )
         thread.start()

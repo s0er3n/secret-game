@@ -1,6 +1,8 @@
 from game.Player import Player
 from game.Response import Response
 
+# base class for different game modes
+
 
 class Game:
     host: Player
