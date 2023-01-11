@@ -37,3 +37,9 @@ class LobbyUpdate(Response):
 class Wiki(Response):
     data: QueryResult
     method: str = "Wiki"
+
+
+@dataclasses.dataclass(kw_only=True)
+class Random(Response):
+    data: list[str]
+    method: str = "Random"

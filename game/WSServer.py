@@ -8,6 +8,7 @@ from game.LobbyServer import LobbyServer
 from game.Response import Error
 from game.SearchGame import Player, SearchGame
 from game.SearchQuery import SearchQuery
+from game.RandomQuery import RandomQuery
 
 app = FastAPI()
 
@@ -31,7 +32,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
             match data:
 
                 case {
-                    "type": "game" | "lobby" | "player" | "search",
+                    "type": "game" | "lobby" | "player" | "search" | "random",
                     "method": method,
                     "args": args,
                 }:
@@ -47,6 +48,8 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                             target = game
                     elif data.get("type") == "search":
                         target = SearchQuery()
+                    elif data.get("type") == "random":
+                        target = RandomQuery()
                     else:
                         target = lobbyServer
                     try:
